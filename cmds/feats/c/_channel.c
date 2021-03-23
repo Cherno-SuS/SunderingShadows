@@ -76,7 +76,7 @@ void execute_feat()
     ::execute_feat();
 
     tell_object(caster,"%^BOLD%^%^WHITE%^You waver unevenly as you prepare to channel primal energies through yourself.");
-    tell_room(place,"%^BOLD%^%^WHITE%^Closes their eyes an look distant for a split second.",caster);
+    tell_room(place,"%^BOLD%^%^WHITE%^"+caster->QCN+" murmurs a quiet prayer, raising their hands aloft.",caster);
 
     caster->set_property("using instant feat",1);
     return;
