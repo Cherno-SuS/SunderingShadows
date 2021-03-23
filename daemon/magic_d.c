@@ -316,9 +316,8 @@ void build_index()
                         spelltable["way"] = str2->query_monk_way();
                         spelltable["discipline"] = str2->query_discipline();
                         spelltable["feats"] = str2->query_feats_required();
-                        //build a list of domain spells
                         if(sizeof(str2->query_domains()))
-                        {
+                        {                          
                             spelltable["divine_domain"] = str2->query_domains();
                             domain_spells += ([ all_spells[x] : spelltable ]);
                         }
@@ -345,7 +344,7 @@ mapping query_index_row(string spell)
 mapping index_castable_spells(object player, string myclass)
 {
     mapping all_spells, tmp;
-    string* all_spell_names, spellfile, featneeded, *domain, pclass;
+    string* all_spell_names, spellfile, featneeded, domain, pclass;
     int lvl;
     string playerdisc = player->query_discipline();
     string playerway = player->query("monk way");
@@ -363,7 +362,7 @@ mapping index_castable_spells(object player, string myclass)
     }
 
     all_spells = query_index(pclass);
-   
+
     if (!sizeof(all_spells)) {
         return ([]);
     }
@@ -372,7 +371,7 @@ mapping index_castable_spells(object player, string myclass)
     all_spell_names = keys(spellIndex);
     all_spells = ([]);
     tmp = ([]);
-            
+
     foreach(spellfile in all_spell_names)
     {
         if (!(lvl = spellIndex[spellfile]["levels"][pclass])) {
@@ -392,6 +391,54 @@ mapping index_castable_spells(object player, string myclass)
                 continue;
             }
         }
+        
+        if(pclass == "cleric" || pclass == "druid")
+        {   
+            int success = 0;
+            int exclude = 0;
+            
+            domain = spellIndex[spellfile]["divine_domain"];
+            
+            if(sizeof(domain))
+            {
+                foreach(string str in domain)
+                {
+                    if(member_array(str, player->query_divine_domain()) >= 0)
+                        success++;
+                    
+                    if(pclass == "druid")
+                    {
+                        if(str == "sun" || str == "cold" || str == "knowledge")
+                            success++;
+                    }
+                }
+                
+                if(!success)
+                    continue;
+            }
+        }
+        
+        /*
+        if(pclass == "druid")
+        {   
+            int success = 0;
+            
+            domain = spellIndex[spellfile]["divine_domain"];
+            
+            if(sizeof(domain))
+            {
+                foreach(string str in domain)
+                {
+                    if(member_array(str, player->query_divine_domain()) >= 0)
+                        success++;
+                }
+                
+                if(!success)
+                    continue;
+            }
+        }
+        */
+        
             
         if (pclass == "monk" &&
             !FEATS_D->usable_feat(player, "grandmaster of the way")) {
@@ -403,26 +450,8 @@ mapping index_castable_spells(object player, string myclass)
             }
         }
         
-        if(pclass == "cleric" || pclass == "druid")
-        {
-            if(!is_valid_domain_spell(player, spellfile, pclass))
-                
-        
         tmp[spellfile] = lvl;
     }
-      
-    foreach(spellfile in all_spell_names)
-    {
-        if(!lvl = is_valid_domain_spell(player, spellfile, myclass))
-            continue;
-        
-        //if spell is already on our list
-        if(tmp[spellfile])
-            continue;
-        
-        tmp[spellfile] = lvl;    
-    }
-    
     return tmp;
 }
 
@@ -431,10 +460,16 @@ mapping index_castable_spells(object player, string myclass)
  */
 mapping index_masterable_spells(object player, string myclass)
 {
+    
     mapping all_spells, tmp;
     string* all_spell_names, spellfile, featneeded, domain, pclass;
     int lvl;
-
+    
+    {
+    return index_castable_spells(player, myclass);
+    }
+    
+    /*
     pclass = myclass;
     if (pclass == "sorcerer") {
         pclass = "mage";
@@ -475,6 +510,8 @@ mapping index_masterable_spells(object player, string myclass)
         tmp[spellfile] = lvl;;
     }
     return tmp;
+    
+    */
 }
 
 /**
@@ -571,50 +608,6 @@ mixed* query_index(string myclass)
     return allSpells[theclass];
 }
 
-mapping query_domain_spells()
-{
-    return domain_spells;
-}
-
-int is_valid_domain_spell(object player, string spell, string myclass)
-{
-   int lvl, success;
-   string *domain, cls;
-   
-   lvl = 0;
-   success = 0;
-    
-   if(myclass != "cleric" && myclass != "druid")
-       return 0;
-      
-    domain = spellIndex[spell]["divine_domain"];
-    
-    if(!sizeof(domain))
-        return 1;
-            
-    foreach(string str in domain)
-    {
-        if(member_array(str, player->query_divine_domain()) >= 0)
-            success++;
-    }
-    
-    if(!success)
-        return 0;
-    
-    //lvl = spellIndex[spell]["levels"]["mage"];
-    cls = keys(spellIndex[spell]["levels"])[0];
-    lvl = spellIndex[spell]["levels"][cls];
-  
-    //return lvl;
-    
-    return 0;
-}
-
-string *spell_domains(string spell)
-{
-    return spellIndex[spell]["divine_domain"];
-}
-
 mapping *query_global_index()
 {
     return spellIndex;
@@ -627,8 +620,6 @@ mapping *filter_global_index(function filter)
 
 int query_spell_level(string myclass, string spell)
 {
-    int lvl;
-    
     if (myclass == "sorcerer") {
         myclass = "mage";
     }
@@ -640,8 +631,7 @@ int query_spell_level(string myclass, string spell)
     }
     if (!allSpells[myclass][spell]) {
         return 0;
-    }       
-    
+    }
     return allSpells[myclass][spell];
 }
 
